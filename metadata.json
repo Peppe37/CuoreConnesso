@@ -1,0 +1,22 @@
+{
+  "name": "CuoreConnesso",
+  "short_name": "Cuore",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fff1f2",
+  "theme_color": "#be185d",
+  "description": "Invia amore con un tocco.",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2190/2190552.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2190/2190552.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "requestFramePermissions": []
+}

@@ -1,0 +1,97 @@
+
+<!DOCTYPE html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>CuoreConnesso</title>
+    <meta name="theme-color" content="#be185d" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              rose: {
+                50: '#fff1f2',
+                100: '#ffe4e6',
+                200: '#fecdd3',
+                300: '#fda4af',
+                400: '#fb7185',
+                500: '#f43f5e',
+                600: '#e11d48',
+                700: '#be123c',
+                800: '#9f1239',
+                900: '#881337',
+              },
+            },
+            animation: {
+              'float-up': 'floatUp 1s ease-out forwards', // Duration override in component
+              'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+              'heartbeat': 'heartbeat 1.5s ease-in-out infinite',
+              'ripple': 'ripple 0.6s linear',
+              'shake': 'shake 0.5s cubic-bezier(.36,.07,.19,.97) both',
+            },
+            keyframes: {
+              floatUp: {
+                '0%': { 
+                  transform: 'translateY(0) translateX(0) scale(0.2) rotate(0deg)', 
+                  opacity: '0' 
+                },
+                '15%': { 
+                  opacity: '1', 
+                  transform: 'translateY(-50px) translateX(calc(var(--tx) * 0.1)) scale(1) rotate(0deg)' 
+                },
+                '70%': {
+                   opacity: '0.8'
+                },
+                '100%': { 
+                  transform: 'translateY(-110vh) translateX(var(--tx)) scale(1.4) rotate(var(--rot))', 
+                  opacity: '0' 
+                },
+              },
+              heartbeat: {
+                '0%, 100%': { transform: 'scale(1)' },
+                '15%': { transform: 'scale(1.15)' },
+                '30%': { transform: 'scale(1)' },
+                '45%': { transform: 'scale(1.15)' },
+                '60%': { transform: 'scale(1)' },
+              },
+              ripple: {
+                '0%': { transform: 'scale(0)', opacity: '0.5' },
+                '100%': { transform: 'scale(4)', opacity: '0' },
+              },
+              shake: {
+                '10%, 90%': { transform: 'translate3d(-1px, 0, 0)' },
+                '20%, 80%': { transform: 'translate3d(2px, 0, 0)' },
+                '30%, 50%, 70%': { transform: 'translate3d(-4px, 0, 0)' },
+                '40%, 60%': { transform: 'translate3d(4px, 0, 0)' }
+              }
+            }
+          },
+        },
+      }
+    </script>
+    <style>
+      /* Custom utility for avoiding pull-to-refresh on mobile */
+      body {
+        overscroll-behavior-y: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/",
+    "react/": "https://aistudiocdn.com/react@^19.2.1/",
+    "react": "https://aistudiocdn.com/react@^19.2.1"
+  }
+}
+</script>
+</head>
+  <body class="bg-rose-50 h-screen w-screen overflow-hidden text-slate-800 antialiased selection:bg-rose-200">
+    <div id="root"></div>
+  </body>
+</html>
