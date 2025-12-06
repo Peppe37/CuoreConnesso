@@ -4,7 +4,7 @@ import { Message } from '../types';
 
 interface DashboardProps {
   partnerName: string;
-  onTriggerHeart: (color: string) => void;
+  onTriggerHeart: (color: string, message: string) => void;
   // Ora accettiamo il messaggio ricevuto dall'esterno (App.tsx)
   lastReceivedMessage: Message | null; 
 }
@@ -109,11 +109,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ partnerName, onTriggerHear
     setFeedback("Invio in corso...");
     
     // Trigger visual effect using the mood's heart color
-    onTriggerHeart(selectedMood.heartColor);
+    onTriggerHeart(selectedMood.heartColor, customMessage);
 
-    // In a real app, here you would send `customMessage` to the backend
-    console.log("Sending message to backend:", customMessage);
-    
     setCustomMessage("");
     setFeedback("Inviato con successo!");
     
@@ -273,7 +270,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ partnerName, onTriggerHear
             </p>
             <div className="flex justify-end mt-2">
               <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
-                {partnerName} • {lastReceivedMessage.timestamp.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                {partnerName} • {new Date(lastReceivedMessage.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
               </span>
             </div>
           </div>
