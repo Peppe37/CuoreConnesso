@@ -7,7 +7,18 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name }),
     });
-    if (!res.ok) throw new Error('Failed to create room');
+    if (!res.ok) {
+        let errorMessage = 'Failed to create room';
+        try {
+            const errorData = await res.json();
+            if (errorData.error) {
+                errorMessage = errorData.error;
+            }
+        } catch (e) {
+            // If response is not JSON, use default error
+        }
+        throw new Error(errorMessage);
+    }
     return res.json();
   },
 
@@ -18,8 +29,16 @@ export const api = {
       body: JSON.stringify({ code, name }),
     });
     if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || 'Failed to join room');
+        let errorMessage = 'Failed to join room';
+        try {
+            const errorData = await res.json();
+            if (errorData.error) {
+                errorMessage = errorData.error;
+            }
+        } catch (e) {
+            // If response is not JSON, use default error
+        }
+        throw new Error(errorMessage);
     }
     return res.json();
   },
@@ -30,13 +49,35 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ code, sender, content, color }),
     });
-    if (!res.ok) throw new Error('Failed to send message');
+    if (!res.ok) {
+        let errorMessage = 'Failed to send message';
+        try {
+            const errorData = await res.json();
+            if (errorData.error) {
+                errorMessage = errorData.error;
+            }
+        } catch (e) {
+            // If response is not JSON, use default error
+        }
+        throw new Error(errorMessage);
+    }
     return res.json();
   },
 
   async pollMessages(code: string, since: number) {
     const res = await fetch(`/api/poll-messages?code=${code}&since=${since}`);
-    if (!res.ok) throw new Error('Failed to poll messages');
+    if (!res.ok) {
+        let errorMessage = 'Failed to poll messages';
+        try {
+            const errorData = await res.json();
+            if (errorData.error) {
+                errorMessage = errorData.error;
+            }
+        } catch (e) {
+            // If response is not JSON, use default error
+        }
+        throw new Error(errorMessage);
+    }
     return res.json();
   }
 };

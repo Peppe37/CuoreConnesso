@@ -14,7 +14,21 @@ export default async function handler(request: Request) {
     const { name } = await request.json();
 
     if (!name) {
-      return new Response('Name is required', { status: 400 });
+      return new Response(JSON.stringify({ error: 'Name is required' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Check if KV is configured
+    if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
+       console.error("Vercel KV is not configured. Missing KV_REST_API_URL or KV_REST_API_TOKEN.");
+       return new Response(JSON.stringify({
+         error: 'Database not configured. Please link Vercel KV in your Vercel project settings.'
+       }), {
+         status: 500,
+         headers: { 'Content-Type': 'application/json' }
+       });
     }
 
     // Generate a unique 6-character code
@@ -37,8 +51,11 @@ export default async function handler(request: Request) {
     return new Response(JSON.stringify({ code, roomId }), {
       headers: { 'Content-Type': 'application/json' },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error(error);
-    return new Response(JSON.stringify({ error: 'Failed to create room' }), { status: 500 });
+    return new Response(JSON.stringify({ error: error.message || 'Failed to create room' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 }
