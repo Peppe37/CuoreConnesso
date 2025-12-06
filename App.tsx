@@ -1,27 +1,57 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { HeartOverlay } from './components/HeartOverlay';
 import { Dashboard } from './components/Dashboard';
 import { Heart, AppState, Message } from './types';
+import { api } from './services/api';
 
 // Enhanced Pairing Screen with "Create" vs "Join" logic and improved visuals
-const PairingScreen = ({ onPair }: { onPair: (name: string, role: 'host' | 'guest') => void }) => {
+const PairingScreen = ({ onPair }: { onPair: (name: string, role: 'host' | 'guest', code: string) => void }) => {
   const [mode, setMode] = useState<'menu' | 'create' | 'join'>('menu');
   const [name, setName] = useState('');
   const [joinCode, setJoinCode] = useState('');
   const [generatedCode, setGeneratedCode] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Generate a random code when entering "create" mode
-  useEffect(() => {
-    if (mode === 'create') {
-      const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-      setGeneratedCode(code);
-    }
-  }, [mode]);
+  const handleCreateRoom = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+          const data = await api.createRoom(name);
+          setGeneratedCode(data.code);
+          // Wait for partner to join (polling handled by parent or here?
+          // For simplicity, we just enter "wait" mode here and let the parent handle polling once "connected"
+          // But actually, we need to know when a guest joins to proceed.
+          // Let's pass the code up and let the parent start polling immediately.
+          onPair(name, 'host', data.code);
+      } catch (e: any) {
+          setError(e.message);
+      } finally {
+          setIsLoading(false);
+      }
+  };
+
+  const handleJoinRoom = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+          const data = await api.joinRoom(joinCode, name);
+          onPair(name, 'guest', joinCode);
+      } catch (e: any) {
+          setError(e.message);
+      } finally {
+          setIsLoading(false);
+      }
+  };
 
   const handleConnect = () => {
     if (!name) return;
-    onPair(name, mode === 'create' ? 'host' : 'guest');
+    if (mode === 'create') {
+        handleCreateRoom();
+    } else {
+        handleJoinRoom();
+    }
   };
 
   if (mode === 'menu') {
@@ -80,15 +110,8 @@ const PairingScreen = ({ onPair }: { onPair: (name: string, role: 'host' | 'gues
       </button>
 
       <h2 className="text-2xl font-bold text-rose-900 mb-6">
-        {mode === 'create' ? 'Il tuo Codice Amore' : 'Inserisci Codice'}
+        {mode === 'create' ? 'Crea la tua Stanza' : 'Inserisci Codice'}
       </h2>
-
-      {mode === 'create' && (
-        <div className="mb-8 p-6 bg-white rounded-2xl border-2 border-dashed border-rose-300 w-full max-w-xs">
-          <p className="text-xs text-rose-400 uppercase tracking-widest mb-2">Condividi questo codice</p>
-          <p className="text-4xl font-mono font-bold text-rose-600 tracking-wider select-all">{generatedCode}</p>
-        </div>
-      )}
 
       <div className="w-full max-w-xs space-y-4">
         {mode === 'join' && (
@@ -116,12 +139,21 @@ const PairingScreen = ({ onPair }: { onPair: (name: string, role: 'host' | 'gues
           />
         </div>
 
+        {error && <p className="text-red-500 text-sm">{error}</p>}
+
         <button 
           onClick={handleConnect}
-          disabled={!name || (mode === 'join' && joinCode.length < 6)}
-          className="w-full bg-rose-500 disabled:bg-rose-300 text-white font-bold py-4 rounded-xl shadow-lg mt-4 transition-colors"
+          disabled={!name || (mode === 'join' && joinCode.length < 6) || isLoading}
+          className="w-full bg-rose-500 disabled:bg-rose-300 text-white font-bold py-4 rounded-xl shadow-lg mt-4 transition-colors flex justify-center items-center"
         >
-          {mode === 'create' ? 'Entra in attesa...' : 'Connetti Cuori'}
+          {isLoading ? (
+             <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+             </svg>
+          ) : (
+            mode === 'create' ? 'Crea Codice' : 'Connetti Cuori'
+          )}
         </button>
       </div>
     </div>
@@ -136,6 +168,12 @@ export default function App() {
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>(
     typeof Notification !== 'undefined' ? Notification.permission : 'default'
   );
+
+  // App Logic State
+  const [myRole, setMyRole] = useState<'host' | 'guest' | null>(null);
+  const [roomCode, setRoomCode] = useState<string | null>(null);
+  const [myName, setMyName] = useState<string>('');
+  const [lastPollTime, setLastPollTime] = useState<number>(0);
 
   // Function to create floating hearts visual effect
   const triggerHeartAnimation = useCallback((color: string) => {
@@ -177,26 +215,17 @@ export default function App() {
     }
   };
 
-  const handlePairing = (name: string, role: 'host' | 'guest') => {
-    // In a real app, here we would verify the code with the backend
-    setPartnerName(role === 'host' ? 'Partner (in attesa)' : 'Partner'); // Host waits for guest usually
-    
-    // Simulate finding the partner name after a brief delay
-    setTimeout(() => {
-        const finalName = role === 'host' ? 'La tua Ragazza' : 'Il tuo Ragazzo';
-        setPartnerName(finalName);
-        
-        // SIMULATION ONLY: Receive a welcome message so the new "Received Message" card isn't empty
-        setTimeout(() => {
-            handleReceiveHeart(`Ciao ${name}, ora siamo connessi! ❤️`);
-        }, 1500);
-
-    }, 1500);
-
+  const handlePairing = (name: string, role: 'host' | 'guest', code: string) => {
+    setMyName(name);
+    setMyRole(role);
+    setRoomCode(code);
     setAppState('dashboard');
+    if (role === 'host') {
+        setPartnerName("In attesa del partner...");
+    }
   };
 
-  const handleReceiveHeart = async (msg: string) => {
+  const handleReceiveHeart = async (msg: string, senderName: string, color: string) => {
     // Update state to show in Dashboard
     setLastReceivedMessage({
         text: msg,
@@ -204,14 +233,14 @@ export default function App() {
         sender: 'partner'
     });
 
-    // Trigger visual effect when receiving
-    triggerHeartAnimation('text-pink-400');
+    // Trigger visual effect when receiving, using the correct color
+    triggerHeartAnimation(color || 'text-pink-400');
     
     // 1. Try Service Worker Notification (Best for PWA/Android)
     if ('serviceWorker' in navigator && notificationPermission === 'granted') {
       try {
         const registration = await navigator.serviceWorker.ready;
-        registration.showNotification(`Amore da ${partnerName}`, {
+        registration.showNotification(`Amore da ${senderName}`, {
           body: msg,
           icon: 'https://cdn-icons-png.flaticon.com/512/2190/2190552.png',
           badge: 'https://cdn-icons-png.flaticon.com/512/2190/2190552.png',
@@ -226,7 +255,7 @@ export default function App() {
     // 2. Fallback to standard Notification API (Desktop/iOS foreground)
     if (notificationPermission === 'granted') {
       try {
-        new Notification(`Amore da ${partnerName}`, {
+        new Notification(`Amore da ${senderName}`, {
             body: msg,
             icon: 'https://cdn-icons-png.flaticon.com/512/2190/2190552.png',
         });
@@ -234,6 +263,62 @@ export default function App() {
         console.log("Notification failed:", e);
       }
     }
+  };
+
+  // Polling Effect
+  useEffect(() => {
+    if (!roomCode || appState !== 'dashboard') return;
+
+    const poll = async () => {
+        try {
+            const data = await api.pollMessages(roomCode, lastPollTime);
+
+            // Update Room State (check if partner joined)
+            if (data.roomState) {
+                if (myRole === 'host' && data.roomState.guest) {
+                    setPartnerName(data.roomState.guest);
+                } else if (myRole === 'guest' && data.roomState.host) {
+                    setPartnerName(data.roomState.host);
+                }
+            }
+
+            // Process Messages
+            if (data.messages && data.messages.length > 0) {
+                // Filter messages that are not from me
+                const newMessages = data.messages.filter((m: any) => m.sender !== myName && m.timestamp > lastPollTime);
+
+                if (newMessages.length > 0) {
+                    const latestMsg = newMessages[newMessages.length - 1];
+                    // Pass color to handler
+                    handleReceiveHeart(latestMsg.text, latestMsg.sender, latestMsg.color);
+                    setLastPollTime(latestMsg.timestamp);
+                } else {
+                    // Update poll time anyway to avoid refetching old messages if we restart
+                    const maxTime = Math.max(...data.messages.map((m: any) => m.timestamp));
+                    if (maxTime > lastPollTime) setLastPollTime(maxTime);
+                }
+            }
+        } catch (e) {
+            console.error("Polling error", e);
+        }
+    };
+
+    const interval = setInterval(poll, 3000); // Poll every 3 seconds
+    return () => clearInterval(interval);
+  }, [roomCode, appState, lastPollTime, myName, myRole]);
+
+  const handleTriggerHeart = async (color: string, message: string) => {
+      // Local animation
+      triggerHeartAnimation(color);
+
+      // Send to backend
+      if (roomCode && myName) {
+          try {
+              await api.sendMessage(roomCode, myName, message, color);
+          } catch (e) {
+              console.error("Failed to send", e);
+          }
+      }
   };
 
   return (
@@ -246,7 +331,15 @@ export default function App() {
       {appState === 'onboarding' ? (
         <PairingScreen onPair={handlePairing} />
       ) : (
-        <div className="h-full w-full relative">
+        <div className="h-full w-full relative flex flex-col items-center">
+            {/* Room Code Display for Host */}
+            {myRole === 'host' && partnerName.includes('attesa') && (
+                <div className="mt-4 p-4 bg-white rounded-xl shadow-lg border-2 border-dashed border-rose-300 z-10">
+                     <p className="text-xs text-rose-400 uppercase tracking-widest mb-1 text-center">Codice Stanza</p>
+                     <p className="text-3xl font-mono font-bold text-rose-600 tracking-wider select-all">{roomCode}</p>
+                </div>
+            )}
+
           {/* Notification Permission Prompt (Only if needed) */}
           {notificationPermission === 'default' && (
             <div className="absolute top-0 left-0 w-full z-40 bg-rose-600 text-white px-4 py-2 text-xs flex justify-between items-center shadow-md">
@@ -262,7 +355,7 @@ export default function App() {
           
           <Dashboard 
             partnerName={partnerName}
-            onTriggerHeart={triggerHeartAnimation}
+            onTriggerHeart={handleTriggerHeart}
             lastReceivedMessage={lastReceivedMessage}
           />
         </div>
