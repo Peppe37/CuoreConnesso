@@ -160,23 +160,27 @@ const PairingScreen = ({ onPair }: { onPair: (name: string, role: 'host' | 'gues
   );
 };
 
-// Modal for Blocking Notifications
-const NotificationModal = ({ onRequest }: { onRequest: () => void }) => {
+// Footer for Notifications (Non-blocking)
+const NotificationFooter = ({ onRequest }: { onRequest: () => void }) => {
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm animate-fade-in">
-            <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl transform transition-all scale-100">
-                <div className="w-20 h-20 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <span className="text-4xl">🔔</span>
-                </div>
-                <h3 className="text-2xl font-black text-rose-900 mb-3">Attiva le Notifiche</h3>
-                <p className="text-slate-600 mb-8 leading-relaxed">
-                    Per sentire il battito del tuo partner, devi attivare le notifiche. Non puoi proseguire senza! ❤️
-                </p>
-                <button
+        <div className="fixed bottom-0 left-0 right-0 z-[60] p-4 bg-white border-t border-rose-100 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] animate-slide-up pb-8">
+            <div className="max-w-md mx-auto flex flex-col sm:flex-row items-center gap-4">
+                 <div className="flex items-center gap-3 flex-1">
+                    <div className="w-12 h-12 bg-rose-100 rounded-full flex items-center justify-center shrink-0 text-2xl">
+                        🔔
+                    </div>
+                    <div className="text-left">
+                        <h3 className="font-bold text-rose-900 leading-tight">Attiva le Notifiche</h3>
+                        <p className="text-xs text-slate-600 leading-snug">
+                            Necessario per ricevere i cuori del partner anche ad app chiusa.
+                        </p>
+                    </div>
+                 </div>
+                 <button
                     onClick={onRequest}
-                    className="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold py-4 rounded-2xl shadow-lg shadow-rose-200 transition-all active:scale-95"
+                    className="w-full sm:w-auto whitespace-nowrap bg-rose-600 hover:bg-rose-700 text-white font-bold py-3 px-6 rounded-xl shadow-md active:scale-95 transition-all"
                 >
-                    Attiva Ora
+                    Attiva
                 </button>
             </div>
         </div>
@@ -415,9 +419,9 @@ export default function App() {
                 </div>
             )}
 
-            {/* Blocking Notification Modal */}
+            {/* Footer Notification (Non-blocking) */}
             {notificationPermission === 'default' && (
-                <NotificationModal onRequest={requestNotificationPermission} />
+                <NotificationFooter onRequest={requestNotificationPermission} />
             )}
 
             {/* If Denied, we might want to show something or just let them use it but warn them.
