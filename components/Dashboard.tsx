@@ -7,6 +7,7 @@ interface DashboardProps {
   onTriggerHeart: (color: string, message: string) => void;
   // Ora accettiamo il messaggio ricevuto dall'esterno (App.tsx)
   lastReceivedMessage: Message | null; 
+  onExit: () => void;
 }
 
 // Creative "Mood" palette instead of simple colors
@@ -64,7 +65,7 @@ interface Ripple {
   id: number;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ partnerName, onTriggerHeart, lastReceivedMessage }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ partnerName, onTriggerHeart, lastReceivedMessage, onExit }) => {
   const [isSuccess, setIsSuccess] = useState(false);
   const [isError, setIsError] = useState(false); // New error state for shaking
   const [feedback, setFeedback] = useState<string>("");
@@ -126,11 +127,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ partnerName, onTriggerHear
       
       {/* Header */}
       <div className="w-full pt-4 flex justify-between items-center z-10">
-        <div>
-          <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Connesso con</h2>
-          <h1 className={`text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r ${selectedMood.gradient}`}>
-            {partnerName}
-          </h1>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onExit}
+            className="p-2 -ml-2 text-slate-400 hover:text-rose-500 transition-colors rounded-full hover:bg-rose-50"
+            title="Esci dalla stanza"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+            </svg>
+          </button>
+          <div>
+            <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Connesso con</h2>
+            <h1 className={`text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r ${selectedMood.gradient}`}>
+              {partnerName}
+            </h1>
+          </div>
         </div>
         <div className="flex items-center gap-1">
           <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
