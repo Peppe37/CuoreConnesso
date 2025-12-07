@@ -160,6 +160,29 @@ const PairingScreen = ({ onPair }: { onPair: (name: string, role: 'host' | 'gues
   );
 };
 
+// Modal for Blocking Notifications
+const NotificationModal = ({ onRequest }: { onRequest: () => void }) => {
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm animate-fade-in">
+            <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl transform transition-all scale-100">
+                <div className="w-20 h-20 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <span className="text-4xl">🔔</span>
+                </div>
+                <h3 className="text-2xl font-black text-rose-900 mb-3">Attiva le Notifiche</h3>
+                <p className="text-slate-600 mb-8 leading-relaxed">
+                    Per sentire il battito del tuo partner, devi attivare le notifiche. Non puoi proseguire senza! ❤️
+                </p>
+                <button
+                    onClick={onRequest}
+                    className="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold py-4 rounded-2xl shadow-lg shadow-rose-200 transition-all active:scale-95"
+                >
+                    Attiva Ora
+                </button>
+            </div>
+        </div>
+    );
+};
+
 export default function App() {
   const [appState, setAppState] = useState<AppState>('onboarding');
   const [partnerName, setPartnerName] = useState<string>('');
@@ -174,6 +197,38 @@ export default function App() {
   const [roomCode, setRoomCode] = useState<string | null>(null);
   const [myName, setMyName] = useState<string>('');
   const [lastPollTime, setLastPollTime] = useState<number>(0);
+
+  // Persistence Effect
+  useEffect(() => {
+    // Load from localStorage on mount
+    const savedRoom = localStorage.getItem('cc_room');
+    if (savedRoom) {
+      try {
+        const { roomCode: r, myName: n, myRole: ro, partnerName: pn } = JSON.parse(savedRoom);
+        if (r && n && ro) {
+           setRoomCode(r);
+           setMyName(n);
+           setMyRole(ro);
+           setPartnerName(pn || (ro === 'host' ? 'In attesa...' : ''));
+           setAppState('dashboard');
+        }
+      } catch (e) {
+        console.error("Failed to restore session", e);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    // Save to localStorage whenever critical state changes
+    if (appState === 'dashboard' && roomCode && myName && myRole) {
+      localStorage.setItem('cc_room', JSON.stringify({
+        roomCode,
+        myName,
+        myRole,
+        partnerName
+      }));
+    }
+  }, [appState, roomCode, myName, myRole, partnerName]);
 
   // Function to create floating hearts visual effect
   const triggerHeartAnimation = useCallback((color: string) => {
@@ -209,6 +264,9 @@ export default function App() {
       setNotificationPermission(permission);
       if (permission === 'granted') {
         new Notification("CuoreConnesso", { body: "Le notifiche sono attive! ❤️" });
+      } else {
+          // If denied, we can't do much but maybe alert the user
+          alert("Devi attivare le notifiche dalle impostazioni del browser per usare l'app.");
       }
     } catch (e) {
       console.error("Permission request failed", e);
@@ -242,8 +300,8 @@ export default function App() {
         const registration = await navigator.serviceWorker.ready;
         registration.showNotification(`Amore da ${senderName}`, {
           body: msg,
-          icon: 'https://cdn-icons-png.flaticon.com/512/2190/2190552.png',
-          badge: 'https://cdn-icons-png.flaticon.com/512/2190/2190552.png',
+          icon: '/logo.svg', // Use local logo
+          badge: '/logo.svg',
           vibrate: [200, 100, 200]
         } as any);
         return; // Success, exit
@@ -257,7 +315,7 @@ export default function App() {
       try {
         new Notification(`Amore da ${senderName}`, {
             body: msg,
-            icon: 'https://cdn-icons-png.flaticon.com/512/2190/2190552.png',
+            icon: '/logo.svg',
         });
       } catch (e) {
         console.log("Notification failed:", e);
@@ -340,24 +398,39 @@ export default function App() {
                 </div>
             )}
 
-          {/* Notification Permission Prompt (Only if needed) */}
-          {notificationPermission === 'default' && (
-            <div className="absolute top-0 left-0 w-full z-40 bg-rose-600 text-white px-4 py-2 text-xs flex justify-between items-center shadow-md">
-              <span>Attiva le notifiche per ricevere i cuori!</span>
-              <button 
-                onClick={requestNotificationPermission}
-                className="bg-white text-rose-600 px-3 py-1 rounded-full font-bold text-xs"
-              >
-                Attiva
-              </button>
-            </div>
-          )}
+            {/* Blocking Notification Modal */}
+            {notificationPermission === 'default' && (
+                <NotificationModal onRequest={requestNotificationPermission} />
+            )}
+
+            {/* If Denied, we might want to show something or just let them use it but warn them.
+                User said "deve per forza essere accettata". If denied, the browser won't show the prompt again.
+                So we show a message telling them to fix it. */}
+            {notificationPermission === 'denied' && (
+                 <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl">
+                         <h3 className="text-xl font-bold text-red-600 mb-3">Notifiche Bloccate ⚠️</h3>
+                        <p className="text-slate-600 mb-4">
+                            Hai bloccato le notifiche. Senza di esse l'app non può funzionare correttamente.
+                        </p>
+                        <p className="text-sm text-slate-500 mb-6">
+                            Vai nelle impostazioni del tuo browser, sblocca le notifiche per questo sito e ricarica la pagina.
+                        </p>
+                        <button
+                             onClick={() => window.location.reload()}
+                             className="text-rose-600 font-bold hover:underline"
+                        >
+                            Ricarica Pagina
+                        </button>
+                    </div>
+                </div>
+            )}
           
-          <Dashboard 
-            partnerName={partnerName}
-            onTriggerHeart={handleTriggerHeart}
-            lastReceivedMessage={lastReceivedMessage}
-          />
+            <Dashboard
+                partnerName={partnerName}
+                onTriggerHeart={handleTriggerHeart}
+                lastReceivedMessage={lastReceivedMessage}
+            />
         </div>
       )}
     </div>

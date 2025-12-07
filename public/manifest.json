@@ -3,6 +3,11 @@
   "name": "CuoreConnesso App",
   "icons": [
     {
+      "src": "/logo.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192 512x512"
+    },
+    {
       "src": "https://cdn-icons-png.flaticon.com/512/2190/2190552.png",
       "type": "image/png",
       "sizes": "192x192"
