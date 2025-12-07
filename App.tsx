@@ -189,8 +189,20 @@ export default function App() {
   const [hearts, setHearts] = useState<Heart[]>([]);
   const [lastReceivedMessage, setLastReceivedMessage] = useState<Message | null>(null);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>(
-    typeof Notification !== 'undefined' ? Notification.permission : 'default'
+    typeof Notification !== 'undefined' ? Notification.permission : 'granted'
   );
+
+  // Check permission on focus (in case user changes settings)
+  useEffect(() => {
+    const checkPermission = () => {
+      if (typeof Notification !== 'undefined') {
+        setNotificationPermission(Notification.permission);
+      }
+    };
+
+    window.addEventListener('focus', checkPermission);
+    return () => window.removeEventListener('focus', checkPermission);
+  }, []);
 
   // App Logic State
   const [myRole, setMyRole] = useState<'host' | 'guest' | null>(null);
@@ -257,13 +269,18 @@ export default function App() {
   }, []);
 
   const requestNotificationPermission = async () => {
-    if (!('Notification' in window)) return;
+    if (!('Notification' in window)) {
+        setNotificationPermission('granted');
+        return;
+    }
     
     try {
       const permission = await Notification.requestPermission();
       setNotificationPermission(permission);
       if (permission === 'granted') {
         new Notification("CuoreConnesso", { body: "Le notifiche sono attive! ❤️" });
+      } else if (permission === 'default') {
+          alert("Per favore clicca su 'Consenti' nel messaggio che appare per attivare le notifiche.");
       } else {
           // If denied, we can't do much but maybe alert the user
           alert("Devi attivare le notifiche dalle impostazioni del browser per usare l'app.");
