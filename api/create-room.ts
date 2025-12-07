@@ -14,48 +14,29 @@ export default async function handler(request: Request) {
     const { name } = await request.json();
 
     if (!name) {
-      return new Response(JSON.stringify({ error: 'Name is required' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return new Response('Name is required', { status: 400 });
     }
 
-    // Check if KV is configured
-    if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
-       console.error("Vercel KV is not configured. Missing KV_REST_API_URL or KV_REST_API_TOKEN.");
-       return new Response(JSON.stringify({
-         error: 'Database not configured. Please link Vercel KV in your Vercel project settings.'
-       }), {
-         status: 500,
-         headers: { 'Content-Type': 'application/json' }
-       });
-    }
+    const code = uuidv4().substring(0, 6).toUpperCase();
+    const roomKey = `room:${code}`;
 
-    // Generate a unique 6-character code
-    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-    const roomId = uuidv4();
-
-    // Store room in KV
-    // Key: room:{code}
-    // Value: { id: roomId, host: name, guest: null, createdAt: timestamp }
-    const roomData = {
-      id: roomId,
+    const room = {
+      id: code, // Using code as ID for simplicity
       host: name,
       guest: null,
-      createdAt: Date.now()
+      messages: [],
+      createdAt: Date.now(),
     };
 
-    // Use SET with EX (expiration) to auto-delete old rooms after 24 hours
-    await kv.set(`room:${code}`, roomData, { ex: 86400 });
+    // Store in KV with 24h expiration
+    await kv.set(roomKey, room, { ex: 86400 });
 
-    return new Response(JSON.stringify({ code, roomId }), {
+    return new Response(JSON.stringify({ code }), {
       headers: { 'Content-Type': 'application/json' },
     });
-  } catch (error: any) {
+
+  } catch (error) {
     console.error(error);
-    return new Response(JSON.stringify({ error: error.message || 'Failed to create room' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return new Response(JSON.stringify({ error: 'Failed to create room' }), { status: 500 });
   }
 }
