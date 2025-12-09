@@ -400,6 +400,19 @@ export default function App() {
       }
   };
 
+  const handleExitRoom = () => {
+    if (confirm('Sei sicuro di voler uscire dalla stanza?')) {
+        setRoomCode(null);
+        setMyName('');
+        setMyRole(null);
+        setPartnerName('');
+        setHearts([]);
+        setLastReceivedMessage(null);
+        localStorage.removeItem('cc_room');
+        setAppState('onboarding');
+    }
+  };
+
   return (
     <div className="h-full w-full bg-gradient-to-b from-rose-50 to-white overflow-hidden font-sans">
       
@@ -451,6 +464,7 @@ export default function App() {
                 partnerName={partnerName}
                 onTriggerHeart={handleTriggerHeart}
                 lastReceivedMessage={lastReceivedMessage}
+                onExit={handleExitRoom}
             />
         </div>
       )}
